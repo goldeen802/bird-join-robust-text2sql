@@ -2,6 +2,12 @@ from __future__ import annotations
 import sqlite3
 from src.common.schema import Column, ForeignKey, TableSchema, DBSchema
 
+def _primary_key(con, table: str) -> str | None:
+    for r in con.execute(f'PRAGMA table_info("{table}")'):
+        if r["pk"]:
+            return r["name"]
+    return None
+
 def load_db_schema(sqlite_path: str, db_id: str) -> DBSchema:
     con = sqlite3.connect(sqlite_path)
     con.row_factory = sqlite3.Row
@@ -14,6 +20,11 @@ def load_db_schema(sqlite_path: str, db_id: str) -> DBSchema:
                 for r in con.execute(f'PRAGMA table_info("{t}")')]
         tables[t] = TableSchema(t, cols)
         for r in con.execute(f'PRAGMA foreign_key_list("{t}")'):
-            fks.append(ForeignKey(t, r["from"], r["table"], r["to"]))
+            # SQLite leaves `to` NULL when the FK implicitly references the
+            # parent's primary key; resolve it so FK columns are never None.
+            to_col = r["to"] if r["to"] is not None else _primary_key(con, r["table"])
+            if r["from"] is None or to_col is None:
+                continue
+            fks.append(ForeignKey(t, r["from"], r["table"], to_col))
     con.close()
     return DBSchema(db_id, tables, fks)

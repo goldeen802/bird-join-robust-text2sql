@@ -38,10 +38,12 @@ class DBSchema:
         return any(c.name.lower() == col.lower() for c in ts.columns)
 
     def fk_pairs(self) -> set[frozenset]:
-        return {
-            frozenset({_k(fk.from_table, fk.from_col), _k(fk.to_table, fk.to_col)})
-            for fk in self.foreign_keys
-        }
+        pairs = set()
+        for fk in self.foreign_keys:
+            if None in (fk.from_table, fk.from_col, fk.to_table, fk.to_col):
+                continue
+            pairs.add(frozenset({_k(fk.from_table, fk.from_col), _k(fk.to_table, fk.to_col)}))
+        return pairs
 
     def is_fk_pair(self, t1: str, c1: str, t2: str, c2: str) -> bool:
         return frozenset({_k(t1, c1), _k(t2, c2)}) in self.fk_pairs()
