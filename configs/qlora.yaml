@@ -1,0 +1,12 @@
+base: Qwen/Qwen2.5-Coder-1.5B-Instruct
+train_file: data/subset_train.jsonl
+output_dir: lora_adapters/qwen-bird
+epochs: 3
+lr: 2.0e-4
+batch_size: 2
+grad_accum: 8
+max_len: 1024
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+save_steps: 100
