@@ -8,7 +8,7 @@ def test_execute_and_match(tiny_db):
 
 def test_order_insensitive_match(tiny_db):
     _, a = execute_sql(tiny_db, "SELECT city FROM client")
-    _, b = execute_sql(tiny_db, "SELECT city FROM client ORDER BY city DESC")
+    _, b = execute_sql(tiny_db, "SELECT city FROM client ORDER BY city ASC")
     assert result_sets_match(a, b, order_sensitive=False)
     assert not result_sets_match(a, b, order_sensitive=True)
 
