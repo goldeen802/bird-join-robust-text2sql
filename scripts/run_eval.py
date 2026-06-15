@@ -1,5 +1,7 @@
 from __future__ import annotations
-import argparse, json, glob, os, yaml
+import argparse, json, glob, os, yaml, sys
+# Allow `python scripts/run_eval.py` to import the top-level `src` package.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.data.schema_loader import load_db_schema
 from src.data.value_index import build_value_index
 from src.common.sql import count_tables

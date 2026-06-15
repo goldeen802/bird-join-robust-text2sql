@@ -17,6 +17,13 @@ class Generator:
         self.model = AutoModelForCausalLM.from_pretrained(
             base, torch_dtype=torch.float16, device_map=device)
         if adapter:
+            # Colab preinstalls an old torchao that makes PEFT's LoRA dispatcher raise
+            # a version check, even though we never use torchao. Neutralize the check.
+            try:
+                import peft.tuners.lora.torchao as _lt
+                _lt.is_torchao_available = lambda *a, **k: False
+            except Exception:
+                pass
             from peft import PeftModel
             self.model = PeftModel.from_pretrained(self.model, adapter)
         self.model.eval()
