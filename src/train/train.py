@@ -1,7 +1,7 @@
 # src/train/train.py
 """QLoRA fine-tune Qwen2.5-Coder-1.5B on grounded (prompt,target) jsonl. Run on Colab T4."""
 from __future__ import annotations
-import json, yaml, sys
+import json, yaml, sys, os, glob
 import torch
 from transformers import (AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig,
                           TrainingArguments, Trainer, DataCollatorForLanguageModeling)
@@ -37,9 +37,14 @@ def main(cfg_path="configs/qlora.yaml"):
         output_dir=cfg["output_dir"], num_train_epochs=cfg["epochs"],
         per_device_train_batch_size=cfg["batch_size"], gradient_accumulation_steps=cfg["grad_accum"],
         learning_rate=cfg["lr"], fp16=True, logging_steps=10, save_steps=cfg["save_steps"],
-        gradient_checkpointing=True, report_to=[])
-    Trainer(model=model, args=args, train_dataset=ds,
-            data_collator=DataCollatorForLanguageModeling(tok, mlm=False)).train()
+        save_total_limit=2, gradient_checkpointing=True, report_to=[])
+    trainer = Trainer(model=model, args=args, train_dataset=ds,
+                      data_collator=DataCollatorForLanguageModeling(tok, mlm=False))
+    # Resume from the last checkpoint if one survived a previous (e.g. disconnected) run.
+    has_ckpt = bool(glob.glob(os.path.join(cfg["output_dir"], "checkpoint-*")))
+    if has_ckpt:
+        print(f"resuming from checkpoint in {cfg['output_dir']}")
+    trainer.train(resume_from_checkpoint=has_ckpt)
     model.save_pretrained(cfg["output_dir"])
     print(f"saved adapter -> {cfg['output_dir']}")
 
