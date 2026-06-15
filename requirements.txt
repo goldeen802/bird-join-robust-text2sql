@@ -1,0 +1,10 @@
+-r requirements-dev.txt
+torch>=2.3
+transformers>=4.44
+peft>=0.12
+bitsandbytes>=0.43
+accelerate>=0.33
+datasets>=2.20
+sentence-transformers>=3.0
+streamlit>=1.36
+tqdm>=4.66

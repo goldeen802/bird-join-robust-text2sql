@@ -1,0 +1,17 @@
+paths:
+  bird_root: data/bird_raw
+  value_index: data/value_index
+  subset_train: data/subset_train.jsonl
+  subset_eval: data/subset_eval.jsonl
+linking:
+  top_k_tables: 4
+  top_k_columns: 20
+generation:
+  n_candidates: 8
+  temperature: 0.8
+fixer:
+  rounds: 1
+model:
+  base: Qwen/Qwen2.5-Coder-1.5B-Instruct
+  adapter: lora_adapters/qwen-bird
+embedder: sentence-transformers/all-MiniLM-L6-v2
