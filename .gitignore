@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# Data & models (large; rebuilt via scripts)
+data/bird_raw/
+data/*.sqlite
+*.duckdb
+models/
+checkpoints/
+*.ckpt
+*.safetensors
+lora_adapters/
+
+# BIRD download archives
+*.zip
+*.tar.gz
+
+# Secrets
+.env
+.streamlit/secrets.toml
+*HF_TOKEN*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Results scratch (keep curated results/ committed manually)
+results/scratch/
+
+# Stray fetched artifacts
+*.pdf.tmp
+
+# Reference deck — contains teammates' personal IDs; keep out of a public repo
+Database-Agnostic Text-to-SQL Chatbot - Final.pdf
