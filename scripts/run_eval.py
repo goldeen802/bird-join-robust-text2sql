@@ -14,13 +14,23 @@ def find_db(root, db_id):
     return glob.glob(os.path.join(root, "**", db_id, f"{db_id}.sqlite"), recursive=True)[0]
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--config", default="configs/pipeline.yaml")
-    cfg = yaml.safe_load(open(ap.parse_args().config))
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--config", default="configs/pipeline.yaml")
+    ap.add_argument("--limit", type=int, default=0,
+                    help="evaluate only the first N examples (0 = all)")
+    args = ap.parse_args()
+    cfg = yaml.safe_load(open(args.config))
     root = cfg["paths"]["bird_root"]
     examples = [json.loads(l) for l in open(cfg["paths"]["subset_eval"], encoding="utf-8")]
+    if args.limit:
+        examples = examples[:args.limit]
+    try:
+        from tqdm import tqdm
+    except Exception:
+        def tqdm(x, **k): return x
     gen = Generator(cfg["model"]["base"], cfg["model"].get("adapter"))
     cache, rows = {}, []
-    for ex in examples:
+    for ex in tqdm(examples, desc="eval"):
         db_id = ex["db_id"]; path = find_db(root, db_id)
         if db_id not in cache:
             db = load_db_schema(path, db_id); cache[db_id] = (db, build_value_index(path, db))
