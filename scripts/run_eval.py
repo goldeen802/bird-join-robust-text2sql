@@ -58,14 +58,23 @@ def main():
             if db_id not in cache:
                 db = load_db_schema(path, db_id); cache[db_id] = (db, build_value_index(path, db))
             db, vindex = cache[db_id]
+            dbg = {}
             pred = answer_question(ex["question"], db, vindex, path, gen,
                                    evidence=ex.get("evidence", ""),
-                                   n_candidates=cfg["generation"]["n_candidates"])
+                                   n_candidates=cfg["generation"]["n_candidates"],
+                                   debug=dbg)
             ok_g, gold_rows = execute_sql(path, ex["SQL"])
             correct = ok_g and pred.executes and result_sets_match(
                 gold_rows, pred.rows, is_order_sensitive(ex["SQL"]))
             row = {"idx": ex_i, "db_id": db_id, "question": ex["question"], "pred": pred.sql,
-                   "gold": ex["SQL"], "n_tables": n_tab, "correct": bool(correct)}
+                   "gold": ex["SQL"], "n_tables": n_tab, "correct": bool(correct),
+                   # Triage fields: tells you whether a wrong answer was a linker miss
+                   # (gold table absent from linked_tables), a value-link miss, or the
+                   # model generating bad SQL from a correct prompt.
+                   "linked_tables": dbg.get("linked_tables", []),
+                   "linked_values": dbg.get("linked_values", []),
+                   "n_valid": dbg.get("n_valid", 0),
+                   "prompt": dbg.get("prompt", "")}
         except Exception as e:
             # Never let one bad example abort a multi-hour run; record and move on.
             row = {"idx": ex_i, "db_id": ex.get("db_id"), "question": ex.get("question"),
