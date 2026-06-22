@@ -1,17 +1,29 @@
 from __future__ import annotations
-import sqlite3
+import sqlite3, time
 from collections import Counter
 
-def execute_sql(db_path: str, sql: str, timeout: float = 30.0):
-    """Return (True, rows) or (False, error_message)."""
+def execute_sql(db_path: str, sql: str, timeout: float = 30.0,
+                max_seconds: float = 15.0):
+    """Return (True, rows) or (False, error_message).
+
+    `timeout` is SQLite's lock-wait; `max_seconds` is a real execution budget.
+    A bad candidate (e.g. a cartesian-product JOIN) can otherwise run for
+    minutes and stall the whole eval — the progress handler aborts it.
+    """
+    con = None
     try:
         con = sqlite3.connect(db_path, timeout=timeout)
         con.text_factory = lambda b: b.decode(errors="replace")
+        deadline = time.monotonic() + max_seconds
+        # Called every N VM ops; returning non-zero aborts the running query.
+        con.set_progress_handler(lambda: 1 if time.monotonic() > deadline else 0, 1000)
         rows = con.execute(sql).fetchall()
-        con.close()
         return True, rows
     except sqlite3.Error as e:
         return False, str(e)
+    finally:
+        if con is not None:
+            con.close()
 
 def _norm_cell(c):
     return round(c, 6) if isinstance(c, float) else c

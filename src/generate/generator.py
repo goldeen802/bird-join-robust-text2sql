@@ -29,7 +29,7 @@ class Generator:
         self.model.eval()
 
     def generate(self, prompt: str, n: int = 8, temperature: float = 0.8,
-                 max_new_tokens: int = 256) -> list[str]:
+                 max_new_tokens: int = 256, max_time: float = 60.0) -> list[str]:
         import torch
         msgs = [{"role": "user", "content": prompt}]
         text = self.tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
@@ -38,6 +38,7 @@ class Generator:
             out = self.model.generate(
                 **inputs, do_sample=True, temperature=temperature,
                 num_return_sequences=n, max_new_tokens=max_new_tokens,
+                max_time=max_time,  # wall-clock backstop so one prompt can't stall the run
                 pad_token_id=self.tok.eos_token_id)
         gen = out[:, inputs["input_ids"].shape[1]:]
         return [clean_sql(self.tok.decode(g, skip_special_tokens=True)) for g in gen]
