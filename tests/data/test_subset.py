@@ -1,4 +1,4 @@
-from src.data.subset import split_by_table_count, build_subset
+from src.data.subset import split_by_table_count, build_subset, train_eval_split
 
 EXAMPLES = [
     {"db_id": "a", "question": "q1", "SQL": "SELECT x FROM t1"},
@@ -15,3 +15,14 @@ def test_build_subset_is_join_heavy():
     counts = [ex["n_tables"] for ex in sub]
     assert all(n <= 2 for n in counts)
     assert counts.count(2) >= counts.count(1)  # join-heavy
+
+def test_train_eval_split_is_disjoint_and_complete():
+    items = [{"id": i} for i in range(100)]
+    train, evals = train_eval_split(items, eval_frac=0.15, seed=0)
+    assert len(evals) == 15 and len(train) == 85
+    train_ids = {x["id"] for x in train}
+    eval_ids = {x["id"] for x in evals}
+    assert train_ids.isdisjoint(eval_ids)          # no leakage
+    assert train_ids | eval_ids == set(range(100))  # nothing dropped
+    # deterministic for a fixed seed
+    assert train_eval_split(items, 0.15, 0)[1] == evals

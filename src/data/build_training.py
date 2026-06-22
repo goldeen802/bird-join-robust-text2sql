@@ -21,7 +21,17 @@ def _find_db_path(bird_root: str, db_id: str) -> str:
 def main():
     cfg = yaml.safe_load(open("configs/pipeline.yaml"))
     root = cfg["paths"]["bird_root"]
-    examples = [json.loads(l) for l in open(cfg["paths"]["subset_eval"], encoding="utf-8")]
+    # Read the disjoint TRAIN split (never the eval split) to avoid leakage.
+    examples = [json.loads(l) for l in open(cfg["paths"]["subset_train_raw"], encoding="utf-8")]
+    # Same embedder-based linker as inference, so training prompts match what
+    # the model sees at eval time (no train/inference prompt drift).
+    embedder = None
+    if cfg.get("embedder"):
+        try:
+            from src.common.embedder import load_embedder
+            embedder = load_embedder(cfg["embedder"])
+        except Exception as e:
+            print(f"embedder unavailable ({e}); building prompts with lexical linking")
     cache: dict[str, tuple] = {}
     out_path = cfg["paths"]["subset_train"]
     with open(out_path, "w", encoding="utf-8") as f:
@@ -34,7 +44,7 @@ def main():
             db, idx = cache[db_id]
             f.write(json.dumps(make_training_record(ex, db, idx, embedder),
                                ensure_ascii=False) + "\n")
-    print(f"wrote training records -> {out_path}")
+    print(f"wrote {len(examples)} training records -> {out_path}")
 
 if __name__ == "__main__":
     main()

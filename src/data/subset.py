@@ -24,16 +24,27 @@ def build_subset(examples, sql_key="SQL", two_table_ratio=0.7, seed=0):
     rng.shuffle(out)
     return out
 
+def train_eval_split(examples, eval_frac=0.15, seed=0):
+    """Disjoint (train, eval) split so the model is never evaluated on a row it
+    was trained on. Deterministic for a given seed."""
+    items = list(examples)
+    random.Random(seed).shuffle(items)
+    n_eval = max(1, round(len(items) * eval_frac))
+    return items[n_eval:], items[:n_eval]
+
 def main():
     import json, yaml, glob, os
     cfg = yaml.safe_load(open("configs/pipeline.yaml"))
     root = cfg["paths"]["bird_root"]
     dev = json.load(open(glob.glob(os.path.join(root, "**", "dev.json"), recursive=True)[0]))
     sub = build_subset(dev, sql_key="SQL", two_table_ratio=0.7, seed=0)
-    with open(cfg["paths"]["subset_eval"], "w", encoding="utf-8") as f:
-        for ex in sub:
-            f.write(json.dumps(ex, ensure_ascii=False) + "\n")
-    print(f"wrote {len(sub)} examples")
+    train, evals = train_eval_split(sub, eval_frac=0.15, seed=0)
+    for key, rows in (("subset_train_raw", train), ("subset_eval", evals)):
+        with open(cfg["paths"][key], "w", encoding="utf-8") as f:
+            for ex in rows:
+                f.write(json.dumps(ex, ensure_ascii=False) + "\n")
+    print(f"wrote {len(train)} train -> {cfg['paths']['subset_train_raw']}, "
+          f"{len(evals)} eval -> {cfg['paths']['subset_eval']}")
 
 if __name__ == "__main__":
     main()

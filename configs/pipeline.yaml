@@ -1,8 +1,9 @@
 paths:
   bird_root: data/bird_raw
   value_index: data/value_index
-  subset_train: data/subset_train.jsonl
-  subset_eval: data/subset_eval.jsonl
+  subset_train_raw: data/subset_train_raw.jsonl   # raw (q, SQL) training split
+  subset_train: data/subset_train.jsonl           # built (prompt, target) records
+  subset_eval: data/subset_eval.jsonl             # held-out eval split (disjoint)
 linking:
   top_k_tables: 4
   top_k_columns: 20
