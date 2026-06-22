@@ -7,9 +7,9 @@ from src.select.selector import select_best
 
 def answer_question(question, db, value_index, db_path, generator,
                     evidence: str = "", n_candidates: int = 8,
-                    debug: dict | None = None) -> ValidationResult:
+                    debug: dict | None = None, embedder=None) -> ValidationResult:
     links = link_values(question, value_index)
-    ls = link_schema(question, db, links, embedder=None)
+    ls = link_schema(question, db, links, embedder=embedder)
     prompt = build_prompt(question, evidence, ls, links)
     candidates = generator.generate(prompt, n=n_candidates)
     results = [validate(sql, db, db_path) for sql in candidates if sql.strip()]

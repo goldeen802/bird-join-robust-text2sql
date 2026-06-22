@@ -5,10 +5,10 @@ from src.data.value_index import build_value_index, link_values
 from src.linking.schema_linker import link_schema
 from src.prompt.prompt_builder import build_prompt
 
-def make_training_record(ex: dict, db, value_index) -> dict:
+def make_training_record(ex: dict, db, value_index, embedder=None) -> dict:
     q = ex["question"]
     links = link_values(q, value_index)
-    ls = link_schema(q, db, links, embedder=None)
+    ls = link_schema(q, db, links, embedder=embedder)
     prompt = build_prompt(q, ex.get("evidence", ""), ls, links)
     return {"db_id": ex["db_id"], "prompt": prompt, "target": ex["SQL"]}
 
@@ -32,7 +32,8 @@ def main():
                 db = load_db_schema(path, db_id)
                 cache[db_id] = (db, build_value_index(path, db))
             db, idx = cache[db_id]
-            f.write(json.dumps(make_training_record(ex, db, idx), ensure_ascii=False) + "\n")
+            f.write(json.dumps(make_training_record(ex, db, idx, embedder),
+                               ensure_ascii=False) + "\n")
     print(f"wrote training records -> {out_path}")
 
 if __name__ == "__main__":

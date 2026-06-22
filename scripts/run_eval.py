@@ -33,6 +33,16 @@ def main():
         def tqdm(x, **k): return x
     gen = Generator(cfg["model"]["base"], cfg["model"].get("adapter"))
 
+    # Embedding-based schema linker (falls back to lexical if unavailable).
+    embedder = None
+    if cfg.get("embedder"):
+        try:
+            from src.common.embedder import load_embedder
+            embedder = load_embedder(cfg["embedder"])
+            print(f"schema linking: embedding model {cfg['embedder']}")
+        except Exception as e:
+            print(f"embedder unavailable ({e}); using lexical schema linking")
+
     # Resume: load any results already computed in a previous (e.g. disconnected) run.
     os.makedirs(os.path.dirname(args.progress) or ".", exist_ok=True)
     done = {}
@@ -62,7 +72,7 @@ def main():
             pred = answer_question(ex["question"], db, vindex, path, gen,
                                    evidence=ex.get("evidence", ""),
                                    n_candidates=cfg["generation"]["n_candidates"],
-                                   debug=dbg)
+                                   debug=dbg, embedder=embedder)
             ok_g, gold_rows = execute_sql(path, ex["SQL"])
             correct = ok_g and pred.executes and result_sets_match(
                 gold_rows, pred.rows, is_order_sensitive(ex["SQL"]))
