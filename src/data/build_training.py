@@ -1,7 +1,7 @@
 from __future__ import annotations
 import json, os, glob, yaml
 from src.data.schema_loader import load_db_schema
-from src.data.value_index import build_value_index, link_values
+from src.data.value_index import load_or_build_value_index, link_values
 from src.linking.schema_linker import link_schema
 from src.prompt.prompt_builder import build_prompt
 
@@ -32,15 +32,22 @@ def main():
             embedder = load_embedder(cfg["embedder"])
         except Exception as e:
             print(f"embedder unavailable ({e}); building prompts with lexical linking")
+    try:
+        from tqdm import tqdm
+    except Exception:
+        def tqdm(x, **k): return x
+    vi_dir = cfg["paths"]["value_index"]
     cache: dict[str, tuple] = {}
     out_path = cfg["paths"]["subset_train"]
     with open(out_path, "w", encoding="utf-8") as f:
-        for ex in examples:
+        for ex in tqdm(examples, desc="build_training"):
             db_id = ex["db_id"]
             if db_id not in cache:
                 path = _find_db_path(root, db_id)
                 db = load_db_schema(path, db_id)
-                cache[db_id] = (db, build_value_index(path, db))
+                # cached per db -> the first run pays the scan once, then reuses
+                print(f"  indexing values for {db_id} ...", flush=True)
+                cache[db_id] = (db, load_or_build_value_index(path, db, vi_dir))
             db, idx = cache[db_id]
             f.write(json.dumps(make_training_record(ex, db, idx, embedder),
                                ensure_ascii=False) + "\n")

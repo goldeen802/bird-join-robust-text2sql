@@ -3,7 +3,7 @@ import argparse, json, glob, os, yaml, sys
 # Allow `python scripts/run_eval.py` to import the top-level `src` package.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.data.schema_loader import load_db_schema
-from src.data.value_index import build_value_index
+from src.data.value_index import load_or_build_value_index
 from src.common.sql import count_tables
 from src.eval.harness import execute_sql, result_sets_match, is_order_sensitive
 from src.eval.report import summarize
@@ -66,7 +66,9 @@ def main():
         try:
             db_id = ex["db_id"]; path = find_db(root, db_id)
             if db_id not in cache:
-                db = load_db_schema(path, db_id); cache[db_id] = (db, build_value_index(path, db))
+                db = load_db_schema(path, db_id)
+                vi = load_or_build_value_index(path, db, cfg["paths"]["value_index"])
+                cache[db_id] = (db, vi)
             db, vindex = cache[db_id]
             dbg = {}
             pred = answer_question(ex["question"], db, vindex, path, gen,
