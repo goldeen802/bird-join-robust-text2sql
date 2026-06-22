@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+import re
 import sqlite3
 from src.common.schema import DBSchema
 
@@ -32,13 +33,23 @@ def save_value_index(index: list[dict], path: str) -> None:
         for row in index:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
-def link_values(question: str, index: list[dict]) -> list[tuple[str, str, str]]:
-    """Return (value, table, column) for index values appearing in the question."""
+def link_values(question: str, index: list[dict],
+                min_len: int = 3) -> list[tuple[str, str, str]]:
+    """Return (value, table, column) for index values appearing in the question.
+
+    A raw substring match floods the prompt: a 1-char status code like 'D'
+    matches any question containing the letter d, dragging junk tables into the
+    schema. So require `min_len` characters and a word-boundary match ('arena'
+    matches as a word, 'd' inside 'and' does not).
+    """
     q = question.lower()
     seen: set[tuple[str, str, str]] = set()
     links: list[tuple[str, str, str]] = []
     for row in index:
-        if row["value_norm"] and row["value_norm"] in q:
+        v = row["value_norm"]
+        if not v or len(v) < min_len:
+            continue
+        if re.search(rf"(?<!\w){re.escape(v)}(?!\w)", q):
             key = (row["value"], row["table"], row["column"])
             if key not in seen:
                 seen.add(key)
