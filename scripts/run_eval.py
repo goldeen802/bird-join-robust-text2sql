@@ -21,6 +21,9 @@ def main():
     ap.add_argument("--progress", default="results/eval_progress.jsonl",
                     help="incremental results file; a re-run resumes from it. "
                          "Point this at Google Drive to survive Colab disconnects.")
+    ap.add_argument("--adapter", default=None,
+                    help="LoRA adapter path; overrides config (avoids depending on "
+                         "the notebook redirect cell having run this session).")
     args = ap.parse_args()
     cfg = yaml.safe_load(open(args.config))
     root = cfg["paths"]["bird_root"]
@@ -31,7 +34,16 @@ def main():
         from tqdm import tqdm
     except Exception:
         def tqdm(x, **k): return x
-    gen = Generator(cfg["model"]["base"], cfg["model"].get("adapter"))
+    adapter = args.adapter or cfg["model"].get("adapter")
+    # A local-looking adapter path that isn't on disk would otherwise be sent to
+    # the HF Hub and fail with a cryptic 401; surface a clear message instead.
+    if adapter and ("/" in adapter or os.sep in adapter) and not os.path.exists(adapter):
+        raise SystemExit(
+            f"adapter path not found: {adapter}\n"
+            "Run the notebook 'redirect' cell first, or pass the right path with "
+            "--adapter /content/drive/MyDrive/bird-text2sql/qwen-bird-v2")
+    print(f"loading adapter: {adapter}")
+    gen = Generator(cfg["model"]["base"], adapter)
 
     # Embedding-based schema linker (falls back to lexical if unavailable).
     embedder = None
