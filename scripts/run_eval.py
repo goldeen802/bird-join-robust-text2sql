@@ -50,9 +50,12 @@ def main():
         for line in open(args.progress, encoding="utf-8"):
             line = line.strip()
             if line:
-                r = json.loads(line); done[r["idx"]] = r
+                r = json.loads(line)
+                # Re-process previously-errored rows on resume (keep the good ones).
+                if not r.get("error"):
+                    done[r["idx"]] = r
     if done:
-        print(f"resuming: {len(done)} examples already done, skipping them")
+        print(f"resuming: {len(done)} good examples done; any previous errors will be retried")
 
     cache = {}
     pf = open(args.progress, "a", encoding="utf-8")
@@ -89,9 +92,11 @@ def main():
                    "prompt": dbg.get("prompt", "")}
         except Exception as e:
             # Never let one bad example abort a multi-hour run; record and move on.
+            import traceback
             row = {"idx": ex_i, "db_id": ex.get("db_id"), "question": ex.get("question"),
                    "pred": "", "gold": ex.get("SQL", ""), "n_tables": n_tab,
-                   "correct": False, "error": str(e)}
+                   "correct": False, "error": str(e),
+                   "traceback": traceback.format_exc()[-600:]}
         pf.write(json.dumps(row, ensure_ascii=False) + "\n"); pf.flush()
         done[ex_i] = row
     pf.close()

@@ -29,7 +29,7 @@ class Generator:
         self.model.eval()
 
     def generate(self, prompt: str, n: int = 8, temperature: float = 0.8,
-                 max_new_tokens: int = 256, max_time: float = 60.0) -> list[str]:
+                 max_new_tokens: int = 256, max_time: float = 300.0) -> list[str]:
         import torch
         msgs = [{"role": "user", "content": prompt}]
         text = self.tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)

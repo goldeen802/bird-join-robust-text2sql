@@ -18,5 +18,9 @@ def score_candidate(r: ValidationResult, linked_values) -> float:
     return s
 
 def select_best(results: list[ValidationResult], linked_values) -> ValidationResult:
+    if not results:
+        # All candidates were empty/whitespace -> return a benign empty result
+        # instead of raising ValueError on max([]).
+        return ValidationResult(sql="", parse_ok=False)
     valid = [r for r in results if r.is_valid] or results
     return max(valid, key=lambda r: score_candidate(r, linked_values))

@@ -48,8 +48,14 @@ def validate(sql: str, db: DBSchema, db_path: str) -> ValidationResult:
     except (sqlglot.errors.ParseError, Exception):
         return ValidationResult(sql=sql, parse_ok=False)
     r = ValidationResult(sql=sql, parse_ok=True)
-    r.unknown_columns = _unknown_columns(sql, db)
-    r.invalid_joins = _invalid_joins(sql, db)
+    try:
+        r.unknown_columns = _unknown_columns(sql, db)
+        r.invalid_joins = _invalid_joins(sql, db)
+    except Exception:
+        # A weird-but-parseable candidate must never crash the whole example;
+        # mark it un-analyzable (so it can't be chosen as "valid") and let
+        # execution below be the deciding signal.
+        r.unknown_columns = ["<unanalyzable>"]
     ok, payload = execute_sql(db_path, sql)
     r.executes = ok
     if ok:

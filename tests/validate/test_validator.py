@@ -1,3 +1,4 @@
+import src.validate.validator as validator_mod
 from src.data.schema_loader import load_db_schema
 from src.validate.validator import validate
 
@@ -20,3 +21,14 @@ def test_unknown_column_flagged(tiny_db):
     db = load_db_schema(tiny_db, "tiny")
     r = validate(BAD_COL, db, tiny_db)
     assert r.unknown_columns and not r.is_valid
+
+def test_validate_never_raises_when_analysis_crashes(tiny_db, monkeypatch):
+    # Simulate the intermittent IndexError some candidates triggered in analysis:
+    # validate must return a (non-valid) result, not propagate and kill the example.
+    db = load_db_schema(tiny_db, "tiny")
+    def boom(*a, **k):
+        raise IndexError("list index out of range")
+    monkeypatch.setattr(validator_mod, "_unknown_columns", boom)
+    r = validate(GOOD, db, tiny_db)
+    assert not r.is_valid          # un-analyzable -> can't be chosen as valid
+    assert r.executes              # but execution still measured

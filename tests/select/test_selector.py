@@ -15,3 +15,8 @@ def test_value_link_bonus_breaks_tie():
     a = vr("SELECT city FROM client")
     b = vr("SELECT city FROM client WHERE city='Portland'")
     assert score_candidate(b, [("Portland", "client", "city")]) > score_candidate(a, [("Portland", "client", "city")])
+
+def test_select_best_handles_no_candidates():
+    # All candidates empty -> must return a benign result, not raise on max([]).
+    best = select_best([], linked_values=[])
+    assert best.sql == "" and not best.is_valid
